@@ -50,7 +50,9 @@ const calloutTypes = {
     question: { emoji: '❓', title: 'Question', class: 'question' },
     abstract: { emoji: '📄', title: 'Abstract', class: 'abstract' },
     example: { emoji: '📋', title: 'Example', class: 'example' },
-    quote: { emoji: '💬', title: 'Quote', class: 'quote' }
+    quote: { emoji: '💬', title: 'Quote', class: 'quote' },
+    important: { emoji: '❗', title: 'Important', class: 'important' },
+    thoughts: { emoji: '💭', title: 'Thoughts', class: 'thoughts' }
 };
 
 // Initialize the application
@@ -380,6 +382,10 @@ function editQuote(index) {
     editModal.style.display = 'flex';
     editNotesText.focus();
     
+    // Reset callout search for fresh start
+    calloutSearchBuffer = '';
+    hideCalloutSearchFeedback();
+    
     // Position cursor at the end of existing notes for easy continuation
     editNotesText.setSelectionRange(editNotesText.value.length, editNotesText.value.length);
 }
@@ -403,6 +409,10 @@ function deleteQuote(index) {
 function closeEditModal() {
     editModal.style.display = 'none';
     currentEditingIndex = -1;
+    
+    // Clean up callout search
+    calloutSearchBuffer = '';
+    hideCalloutSearchFeedback();
     
     // Restore keyboard navigation focus to the quotes container
     highlightSelectedQuote();
@@ -700,15 +710,14 @@ function reconstructMarkdownWithNotes(originalContent) {
 
 // Keyboard navigation functions
 function handleKeyboardNavigation(event) {
-    // Handle ESC key when modal is open
-    if (editModal.style.display === 'flex' && event.key === 'Escape') {
-        event.preventDefault();
-        closeEditModal();
+    // Handle modal keyboard shortcuts when modal is open
+    if (editModal.style.display === 'flex') {
+        handleModalKeyboardShortcuts(event);
         return;
     }
     
     // Only handle other keyboard navigation when quotes are visible and not in modal
-    if (quotesSection.style.display !== 'block' || editModal.style.display === 'flex') {
+    if (quotesSection.style.display !== 'block') {
         return;
     }
     
@@ -729,6 +738,96 @@ function handleKeyboardNavigation(event) {
                 editQuote(selectedQuoteIndex);
             }
             break;
+    }
+}
+
+// Modal keyboard shortcuts for callout selection
+let calloutSearchBuffer = '';
+let calloutSearchTimeout = null;
+
+function handleModalKeyboardShortcuts(event) {
+    // Handle ESC key to close modal
+    if (event.key === 'Escape') {
+        event.preventDefault();
+        closeEditModal();
+        return;
+    }
+    
+    // Don't interfere with typing in text areas
+    if (event.target.tagName === 'TEXTAREA' || event.target.tagName === 'INPUT') {
+        return;
+    }
+    
+    // Handle Ctrl+S to save (optional enhancement)
+    if (event.ctrlKey && event.key === 's') {
+        event.preventDefault();
+        saveQuoteChanges();
+        return;
+    }
+    
+    // Handle letter keys for callout selection
+    if (event.key.length === 1 && event.key.match(/[a-zA-Z]/)) {
+        event.preventDefault();
+        handleCalloutSearch(event.key.toLowerCase());
+        return;
+    }
+}
+
+function handleCalloutSearch(letter) {
+    // Clear previous timeout
+    if (calloutSearchTimeout) {
+        clearTimeout(calloutSearchTimeout);
+    }
+    
+    // Add letter to search buffer
+    calloutSearchBuffer += letter;
+    
+    // Find matching callout types
+    const calloutNames = Object.keys(calloutTypes);
+    const matches = calloutNames.filter(name => 
+        name.toLowerCase().startsWith(calloutSearchBuffer)
+    );
+    
+    if (matches.length > 0) {
+        // Select the first match
+        editCalloutType.value = matches[0];
+        
+        // Visual feedback - briefly highlight the dropdown
+        editCalloutType.style.backgroundColor = '#fff3cd';
+        setTimeout(() => {
+            editCalloutType.style.backgroundColor = '';
+        }, 200);
+        
+        // Show feedback of what was typed
+        showCalloutSearchFeedback(calloutSearchBuffer, matches);
+    }
+    
+    // Clear search buffer after 1 second of inactivity
+    calloutSearchTimeout = setTimeout(() => {
+        calloutSearchBuffer = '';
+        hideCalloutSearchFeedback();
+    }, 1000);
+}
+
+function showCalloutSearchFeedback(searchText, matches) {
+    // Create or update feedback element
+    let feedback = document.getElementById('callout-search-feedback');
+    if (!feedback) {
+        feedback = document.createElement('div');
+        feedback.id = 'callout-search-feedback';
+        feedback.className = 'callout-search-feedback';
+        editCalloutType.parentNode.appendChild(feedback);
+    }
+    
+    const matchNames = matches.map(m => calloutTypes[m].title).join(', ');
+    feedback.textContent = `Typing: "${searchText}" → ${matchNames}`;
+    feedback.style.display = 'block';
+}
+
+function hideCalloutSearchFeedback() {
+    const feedback = document.getElementById('callout-search-feedback');
+    if (feedback) {
+        feedback.style.display = 'none';
     }
 }
 

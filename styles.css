@@ -544,6 +544,18 @@ input[type="checkbox"] {
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
+.callout-search-feedback {
+    display: none;
+    background: #f0f9ff;
+    border: 1px solid #0ea5e9;
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-top: 6px;
+    font-size: 12px;
+    color: #0369a1;
+    font-style: italic;
+}
+
 .modal-footer {
     padding: 20px 25px;
     border-top: 1px solid #e1e5e9;
@@ -846,6 +858,24 @@ input[type="checkbox"] {
 
 .callout.quote .callout-title {
     color: #4f46e5;
+}
+
+.callout.important {
+    background-color: #fff7ed;
+    border-color: #f97316;
+}
+
+.callout.important .callout-title {
+    color: #ea580c;
+}
+
+.callout.thoughts {
+    background-color: #fdf2f8;
+    border-color: #ec4899;
+}
+
+.callout.thoughts .callout-title {
+    color: #db2777;
 }
 
 /* Footer */

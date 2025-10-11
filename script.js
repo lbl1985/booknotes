@@ -36,6 +36,7 @@ let originalFileContent = '';
 let quotes = [];
 let currentEditingIndex = -1;
 let hasProgressMetadata = false;
+let selectedQuoteIndex = -1; // For keyboard navigation
 
 // Callout type mappings
 const calloutTypes = {
@@ -79,6 +80,9 @@ function init() {
     // File input listeners
     fileInput.addEventListener('change', handleFileSelect);
     fileDropZone.addEventListener('click', () => fileInput.click());
+    
+    // Keyboard navigation listeners
+    document.addEventListener('keydown', handleKeyboardNavigation);
     
     // Drag and drop listeners
     fileDropZone.addEventListener('dragover', handleDragOver);
@@ -268,6 +272,16 @@ function displayQuotes() {
     
     // Enable save progress button when quotes are available
     saveProgressBtn.disabled = quotes.length === 0;
+    
+    // Only reset keyboard navigation selection if no quotes or invalid selection
+    if (quotes.length === 0 || selectedQuoteIndex >= quotes.length) {
+        selectedQuoteIndex = -1;
+    }
+    
+    // Restore highlight if we have a valid selection
+    if (selectedQuoteIndex >= 0) {
+        highlightSelectedQuote();
+    }
 }
 
 // Update quote counter
@@ -289,6 +303,7 @@ function createQuoteCard(quote, index) {
     const card = document.createElement('div');
     card.className = `quote-card ${quote.selected ? 'selected' : ''} ${quote.merged ? 'merged' : ''}`;
     card.dataset.index = index;
+    card.dataset.quoteIndex = index; // For keyboard navigation
     
     const calloutInfo = calloutTypes[quote.calloutType];
     
@@ -329,10 +344,13 @@ function createQuoteCard(quote, index) {
     
     card.innerHTML = cardContent;
     
-    // Add click handler for selection
+    // Add click handler for keyboard highlighting only
     card.addEventListener('click', (e) => {
         if (e.target.type === 'checkbox' || e.target.tagName === 'BUTTON') return;
-        toggleQuoteSelection(index);
+        
+        // Set keyboard selection to clicked quote (no checkbox toggle)
+        selectedQuoteIndex = index;
+        highlightSelectedQuote();
     });
     
     // Add checkbox handler
@@ -352,6 +370,7 @@ function toggleQuoteSelection(index) {
 
 function editQuote(index) {
     currentEditingIndex = index;
+    selectedQuoteIndex = index; // Remember this quote for keyboard navigation
     const quote = quotes[index];
     
     editQuoteText.value = quote.highlight;
@@ -368,6 +387,15 @@ function editQuote(index) {
 function deleteQuote(index) {
     if (confirm('Are you sure you want to delete this quote?')) {
         quotes.splice(index, 1);
+        
+        // Adjust keyboard selection after deletion
+        if (selectedQuoteIndex >= index) {
+            selectedQuoteIndex = Math.max(0, selectedQuoteIndex - 1);
+            if (quotes.length === 0) {
+                selectedQuoteIndex = -1;
+            }
+        }
+        
         displayQuotes();
     }
 }
@@ -375,6 +403,10 @@ function deleteQuote(index) {
 function closeEditModal() {
     editModal.style.display = 'none';
     currentEditingIndex = -1;
+    
+    // Restore keyboard navigation focus to the quotes container
+    highlightSelectedQuote();
+    scrollToSelectedQuote();
 }
 
 function saveQuoteChanges() {
@@ -663,6 +695,79 @@ function reconstructMarkdownWithNotes(originalContent) {
     });
     
     return result.trim();
+}
+
+// Keyboard navigation functions
+function handleKeyboardNavigation(event) {
+    // Only handle keyboard navigation when quotes are visible and not in modal
+    if (quotesSection.style.display !== 'block' || editModal.style.display === 'flex') {
+        return;
+    }
+    
+    // Prevent default behavior for navigation keys
+    if (['ArrowUp', 'ArrowDown', 'Enter'].includes(event.key)) {
+        event.preventDefault();
+    }
+    
+    switch(event.key) {
+        case 'ArrowUp':
+            navigateToQuote('up');
+            break;
+        case 'ArrowDown':
+            navigateToQuote('down');
+            break;
+        case 'Enter':
+            if (selectedQuoteIndex >= 0) {
+                editQuote(selectedQuoteIndex);
+            }
+            break;
+    }
+}
+
+function navigateToQuote(direction) {
+    if (quotes.length === 0) return;
+    
+    // Initialize selection if nothing is selected
+    if (selectedQuoteIndex === -1) {
+        selectedQuoteIndex = 0;
+    } else {
+        // Move selection
+        if (direction === 'up' && selectedQuoteIndex > 0) {
+            selectedQuoteIndex--;
+        } else if (direction === 'down' && selectedQuoteIndex < quotes.length - 1) {
+            selectedQuoteIndex++;
+        }
+    }
+    
+    highlightSelectedQuote();
+    scrollToSelectedQuote();
+}
+
+function highlightSelectedQuote() {
+    // Remove previous highlights
+    document.querySelectorAll('.quote-card').forEach(card => {
+        card.classList.remove('keyboard-selected');
+    });
+    
+    // Add highlight to selected quote
+    if (selectedQuoteIndex >= 0) {
+        const selectedCard = document.querySelector(`[data-quote-index="${selectedQuoteIndex}"]`);
+        if (selectedCard) {
+            selectedCard.classList.add('keyboard-selected');
+        }
+    }
+}
+
+function scrollToSelectedQuote() {
+    if (selectedQuoteIndex >= 0) {
+        const selectedCard = document.querySelector(`[data-quote-index="${selectedQuoteIndex}"]`);
+        if (selectedCard) {
+            selectedCard.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center' 
+            });
+        }
+    }
 }
 
 // File handling functions

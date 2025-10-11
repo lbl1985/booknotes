@@ -255,6 +255,13 @@ input[type="checkbox"] {
     margin: 0;
 }
 
+.quotes-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+}
+
 .quotes-count {
     background: #667eea;
     color: white;
@@ -262,6 +269,12 @@ input[type="checkbox"] {
     border-radius: 20px;
     font-size: 14px;
     font-weight: 600;
+}
+
+.keyboard-help {
+    font-size: 12px;
+    color: #6b7280;
+    font-style: italic;
 }
 
 .quotes-controls {
@@ -349,6 +362,13 @@ input[type="checkbox"] {
 .quote-card.merged {
     border-color: #10b981;
     background: #ecfdf5;
+}
+
+.quote-card.keyboard-selected {
+    border-color: #f59e0b;
+    background: #fffbeb;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+    transform: translateY(-1px);
 }
 
 .quote-header {

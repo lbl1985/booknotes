@@ -1,0 +1,19 @@
+🚀 To launch the Book Notes Converter:
+
+1. Open `index.html` in any modern web browser
+2. Or double-click the HTML file to open it
+
+🧪 To test with sample data:
+- Use `sample-notes.md` or `test-sample.md` as test files
+
+📝 Key Features Ready to Test:
+✅ File drag & drop loading
+✅ Interactive quote parsing  
+✅ Individual quote editing with callout types
+✅ Location reference hiding/showing
+✅ Quote merging functionality
+✅ Progress saving with metadata
+✅ Progress restoration on file reload
+✅ Final output generation
+✅ Mobile-responsive design
+✅ Debug console for troubleshooting

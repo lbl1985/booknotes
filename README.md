@@ -1,6 +1,6 @@
-# Book Notes - Kindle to Obsidian Converter
+# 📚 Book Notes - Kindle to Obsidian Converter
 
-A simple web-based UI for converting Kindle highlights to Obsidian-formatted notes with proper blockquotes and callouts.
+An interactive web application that converts Kindle highlights from markdown format to Obsidian-formatted notes with blockquotes and callouts.
 
 ## Features
 

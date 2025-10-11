@@ -19,6 +19,7 @@ const removeFileBtn = document.getElementById('removeFileBtn');
 const quotesSection = document.getElementById('quotesSection');
 const outputSection = document.getElementById('outputSection');
 const quotesList = document.getElementById('quotesList');
+const saveProgressBtn = document.getElementById('saveProgressBtn');
 
 // Modal elements
 const editModal = document.getElementById('editModal');
@@ -34,6 +35,7 @@ let currentFileName = '';
 let originalFileContent = '';
 let quotes = [];
 let currentEditingIndex = -1;
+let hasProgressMetadata = false;
 
 // Callout type mappings
 const calloutTypes = {
@@ -52,10 +54,14 @@ const calloutTypes = {
 
 // Initialize the application
 function init() {
+    console.log('Book Notes Converter initialized');
+    console.log('Save Progress Button:', saveProgressBtn);
+    
     // Event listeners
     parseBtn.addEventListener('click', parseQuotes);
     generateBtn.addEventListener('click', generateOutput);
     mergeSelectedBtn.addEventListener('click', mergeSelectedQuotes);
+    saveProgressBtn.addEventListener('click', saveProgress);
     copyBtn.addEventListener('click', copyToClipboard);
     downloadBtn.addEventListener('click', downloadMarkdownFile);
     clearBtn.addEventListener('click', clearAll);
@@ -259,6 +265,9 @@ function displayQuotes() {
     
     updateMergeButton();
     updateQuoteCount();
+    
+    // Enable save progress button when quotes are available
+    saveProgressBtn.disabled = quotes.length === 0;
 }
 
 // Update quote counter
@@ -506,6 +515,153 @@ function backToEdit() {
     quotesSection.scrollIntoView({ behavior: 'smooth' });
 }
 
+// Progress tracking functions
+function generateProgressMetadata() {
+    const progressData = {
+        timestamp: new Date().toISOString(),
+        totalQuotes: quotes.length,
+        quotesWithNotes: quotes.filter(q => q.notes && q.notes.trim()).length,
+        mergedQuotes: quotes.filter(q => q.merged).length,
+        quotes: quotes.map((quote, index) => ({
+            index: index,
+            id: quote.id,
+            hasNotes: !!(quote.notes && quote.notes.trim()),
+            calloutType: quote.calloutType,
+            merged: quote.merged,
+            selected: quote.selected
+        }))
+    };
+    
+    return `<!-- BOOKNOTES_PROGRESS_START
+${JSON.stringify(progressData, null, 2)}
+BOOKNOTES_PROGRESS_END -->`;
+}
+
+function parseProgressMetadata(content) {
+    const progressMatch = content.match(/<!-- BOOKNOTES_PROGRESS_START\n([\s\S]*?)\nBOOKNOTES_PROGRESS_END -->/);
+    if (progressMatch) {
+        try {
+            return JSON.parse(progressMatch[1]);
+        } catch (e) {
+            console.error('Error parsing progress metadata:', e);
+        }
+    }
+    return null;
+}
+
+function removeProgressMetadata(content) {
+    return content.replace(/<!-- BOOKNOTES_PROGRESS_START[\s\S]*?BOOKNOTES_PROGRESS_END -->\n?/g, '');
+}
+
+function saveProgress() {
+    console.log('Save Progress button clicked!');
+    
+    if (!currentFileName) {
+        alert('No file loaded to save progress to.');
+        return;
+    }
+    
+    console.log('Saving progress...', { quotes: quotes.length, fileName: currentFileName });
+    
+    // Show user instruction about replacing the original file
+    const confirmMessage = `This will download "${currentFileName}" with your progress saved.\n\n` +
+                          `To avoid file duplicates:\n` +
+                          `1. Save the downloaded file to replace your original\n` +
+                          `2. Or move the downloaded file to replace the original\n\n` +
+                          `Continue with saving progress?`;
+    
+    if (!confirm(confirmMessage)) {
+        return;
+    }
+    
+    // Get current content without old progress metadata
+    let cleanContent = removeProgressMetadata(originalFileContent);
+    
+    // Reconstruct the markdown with current notes
+    let updatedContent = reconstructMarkdownWithNotes(originalFileContent);
+    
+    // Add progress metadata at the end
+    const progressMetadata = generateProgressMetadata();
+    console.log('Generated metadata:', progressMetadata);
+    updatedContent += '\n\n' + progressMetadata;
+    
+    // Create and download the updated file with exact same name
+    const blob = new Blob([updatedContent], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = currentFileName; // Exact same filename for replacement
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    // Update original content for next save
+    originalFileContent = updatedContent;
+    
+    // Visual feedback with instruction
+    const originalText = saveProgressBtn.textContent;
+    saveProgressBtn.textContent = '✅ Downloaded - Replace Original!';
+    saveProgressBtn.style.background = '#22c55e';
+    
+    // Show follow-up instruction
+    setTimeout(() => {
+        alert(`Progress saved to downloads!\n\n` +
+              `Next step: Replace your original "${currentFileName}" file with the downloaded version to avoid duplicates.`);
+    }, 500);
+    
+    setTimeout(() => {
+        saveProgressBtn.textContent = originalText;
+        saveProgressBtn.style.background = '';
+    }, 4000);
+}
+
+function reconstructMarkdownWithNotes(originalContent) {
+    // Remove progress metadata first
+    const cleanContent = removeProgressMetadata(originalContent);
+    
+    // Split by --- to get original sections
+    const sections = cleanContent.split(/---\s*/).filter(section => section.trim());
+    
+    let result = '';
+    
+    quotes.forEach((quote, index) => {
+        if (index > 0) {
+            result += '\n---\n\n';
+        }
+        
+        // Add the quote highlight with its location references
+        if (quote.merged && quote.quoteParts) {
+            // Handle merged quotes
+            quote.quoteParts.forEach((part, partIndex) => {
+                result += part.highlight;
+                if (part.locationRefs && part.locationRefs.length > 0) {
+                    result += ' ' + part.locationRefs.join(' ');
+                }
+                if (partIndex < quote.quoteParts.length - 1) {
+                    result += '\n\n';
+                }
+            });
+        } else {
+            // Single quote
+            result += quote.highlight;
+            if (quote.locationRefs && quote.locationRefs.length > 0) {
+                result += ' ' + quote.locationRefs.join(' ');
+            }
+        }
+        
+        // Add notes if they exist
+        if (quote.notes && quote.notes.trim()) {
+            result += '\n\n' + quote.notes;
+        }
+        
+        result += '\n';
+    });
+    
+    return result.trim();
+}
+
 // File handling functions
 function handleFileSelect(event) {
     const file = event.target.files[0];
@@ -543,18 +699,30 @@ function loadFile(file) {
     const reader = new FileReader();
     reader.onload = function(e) {
         const content = e.target.result;
-        inputText.value = content;
         originalFileContent = content;
         currentFileName = file.name;
         
+        // Check for existing progress metadata
+        const progressData = parseProgressMetadata(content);
+        hasProgressMetadata = !!progressData;
+        
+        // Remove progress metadata from display content
+        const cleanContent = removeProgressMetadata(content);
+        inputText.value = cleanContent;
+        
         // Update UI
-        fileName.textContent = file.name;
+        fileName.textContent = file.name + (hasProgressMetadata ? ' (has progress)' : '');
         currentFile.style.display = 'flex';
         fileDropZone.style.display = 'none';
         
         // Reset sections
         quotesSection.style.display = 'none';
         outputSection.style.display = 'none';
+        
+        // Show progress info if available
+        if (hasProgressMetadata) {
+            showProgressInfo(progressData);
+        }
     };
     
     reader.onerror = function() {
@@ -562,6 +730,33 @@ function loadFile(file) {
     };
     
     reader.readAsText(file);
+}
+
+function showProgressInfo(progressData) {
+    const timestamp = new Date(progressData.timestamp).toLocaleString();
+    const message = `📊 Previous Progress Found (${timestamp}):\n` +
+                   `• ${progressData.totalQuotes} quotes total\n` +
+                   `• ${progressData.quotesWithNotes} quotes with notes\n` +
+                   `• ${progressData.mergedQuotes} merged quotes\n\n` +
+                   `Click "Parse Quotes" to continue where you left off.`;
+    
+    if (confirm(message + '\n\nWould you like to automatically parse and restore your progress?')) {
+        parseQuotes();
+        restoreProgressState(progressData);
+    }
+}
+
+function restoreProgressState(progressData) {
+    // This will be called after parsing to restore selection states, etc.
+    setTimeout(() => {
+        progressData.quotes.forEach((savedQuote, index) => {
+            if (index < quotes.length && quotes[index].id === savedQuote.id) {
+                quotes[index].selected = savedQuote.selected;
+                quotes[index].calloutType = savedQuote.calloutType;
+            }
+        });
+        displayQuotes();
+    }, 100);
 }
 
 function removeFile() {

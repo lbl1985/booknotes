@@ -287,26 +287,38 @@ function createQuoteCard(quote, index) {
     const locationIndicator = quote.locationRefs && quote.locationRefs.length > 0 ? 
         `<span class="location-indicator" title="Contains Kindle location reference">📍</span>` : '';
     
-    card.innerHTML = `
+    // Build the card content conditionally
+    const hasNotes = quote.notes && quote.notes.trim();
+    const editButtonText = hasNotes ? '✏️ Edit' : '✏️ Add Notes';
+    
+    let cardContent = `
         <div class="quote-header">
             <span class="quote-number">Quote #${index + 1} ${locationIndicator}</span>
             <div class="quote-actions">
                 <input type="checkbox" class="quote-checkbox" ${quote.selected ? 'checked' : ''}>
-                <button class="edit-btn" onclick="editQuote(${index})">✏️ Edit</button>
+                <button class="edit-btn" onclick="editQuote(${index})">${editButtonText}</button>
                 <button class="delete-btn" onclick="deleteQuote(${index})">🗑️ Delete</button>
             </div>
         </div>
         
-        <div class="quote-text">"${quote.highlight}"</div>
-        
-        <div class="quote-notes ${quote.notes ? '' : 'empty'}">
-            ${quote.notes || 'No notes added yet. Click Edit to add your thoughts.'}
-        </div>
-        
+        <div class="quote-text">"${quote.highlight}"</div>`;
+    
+    // Only add notes section if there are actual notes
+    if (hasNotes) {
+        cardContent += `
+        <div class="quote-notes">
+            ${quote.notes}
+        </div>`;
+    }
+    
+    // Always show callout info for consistency
+    cardContent += `
         <div class="quote-callout-info">
             <span>${calloutInfo.emoji} ${calloutInfo.title} callout</span>
-        </div>
-    `;
+            ${!hasNotes ? '<span class="no-notes-indicator">• No notes yet</span>' : ''}
+        </div>`;
+    
+    card.innerHTML = cardContent;
     
     // Add click handler for selection
     card.addEventListener('click', (e) => {

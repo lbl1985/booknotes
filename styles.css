@@ -414,10 +414,16 @@ input[type="checkbox"] {
 .quote-callout-info {
     display: flex;
     align-items: center;
-    gap: 8px;
+    justify-content: space-between;
     margin-top: 10px;
     font-size: 12px;
     color: #6b7280;
+}
+
+.no-notes-indicator {
+    color: #9ca3af;
+    font-style: italic;
+    font-size: 11px;
 }
 
 /* Modal Styles */

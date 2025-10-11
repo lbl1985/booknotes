@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Notes - Kindle to Obsidian Converter</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📚 Book Notes Converter</h1>
+            <p>Convert your Kindle highlights to Obsidian-formatted notes</p>
+        </header>
+
+        <main>
+            <!-- Step 1: File Input -->
+            <div class="input-section">
+                <h2>Step 1: Load Your Notes</h2>
+                
+                <div class="file-input-area" id="fileInputArea">
+                    <div class="file-drop-zone" id="fileDropZone">
+                        <div class="drop-zone-content">
+                            <div class="drop-zone-icon">📁</div>
+                            <p><strong>Drop your markdown file here</strong></p>
+                            <p>or</p>
+                            <button type="button" class="browse-btn" onclick="document.getElementById('fileInput').click()">Browse Files</button>
+                            <input type="file" id="fileInput" accept=".md,.markdown,.txt" style="display: none;">
+                        </div>
+                    </div>
+                    
+                    <div class="current-file" id="currentFile" style="display: none;">
+                        <div class="file-info">
+                            <span class="file-icon">📄</span>
+                            <span class="file-name" id="fileName">No file selected</span>
+                            <button class="remove-file-btn" id="removeFileBtn">✕</button>
+                        </div>
+                    </div>
+                </div>
+
+                <textarea 
+                    id="inputText" 
+                    placeholder="Your markdown file content will appear here, or you can paste content directly...
+
+Example format:
+---
+This is a highlight from the book that you want to format.
+
+Your notes about this highlight. This could be multiple paragraphs with your thoughts and analysis.
+
+---"
+                    rows="8"
+                ></textarea>
+                
+                <div class="controls">
+                    <button id="parseBtn" class="convert-btn">📋 Parse Quotes</button>
+                    <button id="clearBtn" class="clear-btn">🗑️ Clear All</button>
+                </div>
+            </div>
+
+            <!-- Step 2: Quote Management -->
+            <div class="quotes-section" id="quotesSection" style="display: none;">
+                <div class="quotes-header">
+                    <div class="quotes-title">
+                        <h2>Step 2: Review & Edit Quotes</h2>
+                        <span class="quotes-count" id="quotesCount">0 quotes</span>
+                    </div>
+                    <div class="quotes-controls">
+                        <div class="control-group">
+                            <label for="noteCallout">Default Callout Type:</label>
+                            <select id="noteCallout">
+                                <option value="note" selected>📝 Note (Blue)</option>
+                                <option value="tip">💡 Tip (Green)</option>
+                                <option value="warning">⚠️ Warning (Red)</option>
+                                <option value="danger">🚨 Danger (Dark Red)</option>
+                                <option value="info">ℹ️ Info (Light Blue)</option>
+                                <option value="success">✅ Success (Green)</option>
+                                <option value="bug">🐛 Bug (Red)</option>
+                                <option value="question">❓ Question (Purple)</option>
+                                <option value="abstract">📄 Abstract (Gray)</option>
+                                <option value="example">📋 Example (Yellow)</option>
+                                <option value="quote">💬 Quote (Indigo)</option>
+                            </select>
+                        </div>
+                        <button id="mergeSelectedBtn" class="merge-btn" disabled>🔗 Merge Selected</button>
+                        <button id="generateBtn" class="convert-btn">✨ Generate Output</button>
+                    </div>
+                </div>
+                
+                <div class="quotes-container">
+                    <div class="quotes-list" id="quotesList">
+                        <!-- Quote cards will be dynamically generated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: Output -->
+            <div class="output-section" id="outputSection" style="display: none;">
+                <h2>Step 3: Final Output</h2>
+                <div class="output-controls">
+                    <button id="downloadBtn" class="download-btn">💾 Download Markdown File</button>
+                    <button id="copyBtn" class="copy-btn">📋 Copy to Clipboard</button>
+                    <button id="backToEditBtn" class="back-btn">← Back to Edit</button>
+                </div>
+                <textarea 
+                    id="outputText" 
+                    placeholder="Converted Obsidian format will appear here..."
+                    rows="15"
+                    readonly
+                ></textarea>
+            </div>
+
+
+        </main>
+
+        <!-- Debug/Test Section -->
+        <div class="debug-section" id="debugSection" style="display: none;">
+            <h2>🔧 Debug - Kindle Location Reference Testing</h2>
+            
+            <div class="test-input">
+                <h3>Test Input</h3>
+                <textarea id="testInput" rows="8" placeholder="Paste a single section here to test parsing...">theory of motivation has emerged: The first step in creating drive is giving people opportunities to make choices that provide them with a sense of autonomy and self-determination. — location: [302](kindle://book?action=open&asin=B00Z3FRYB0&location=302) ^ref-391
+
+This is my note about this theory.</textarea>
+                <button id="runTestBtn" class="convert-btn">🧪 Run Test</button>
+            </div>
+            
+            <div class="test-results">
+                <div class="test-section">
+                    <h3>Lines Detected</h3>
+                    <div id="linesOutput" class="test-output"></div>
+                </div>
+                
+                <div class="test-section">
+                    <h3>Location Reference Detection</h3>
+                    <div id="locationOutput" class="test-output"></div>
+                </div>
+                
+                <div class="test-section">
+                    <h3>Final Parsed Result</h3>
+                    <div id="parsedOutput" class="test-output"></div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <div class="instructions">
+                <h3>How to use:</h3>
+                <ol>
+                    <li>Upload your markdown file or paste Kindle highlights directly (format: highlight, then notes, separated by ---)</li>
+                    <li>Choose your preferred callout type for notes</li>
+                    <li>Toggle whether to merge consecutive highlights</li>
+                    <li>Click "Convert" to generate Obsidian-formatted output</li>
+                    <li>Download the converted markdown file or copy to clipboard</li>
+                </ol>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Quote Edit Modal -->
+    <div class="modal-overlay" id="editModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Quote & Notes</h3>
+                <button class="modal-close" id="closeModal">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Quote:</label>
+                    <textarea id="editQuoteText" rows="3" placeholder="Enter the quote/highlight..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Your Notes:</label>
+                    <textarea id="editNotesText" rows="4" placeholder="Add your thoughts and notes..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="editCalloutType">Callout Type:</label>
+                    <select id="editCalloutType">
+                        <option value="note">📝 Note (Blue)</option>
+                        <option value="tip">💡 Tip (Green)</option>
+                        <option value="warning">⚠️ Warning (Red)</option>
+                        <option value="danger">🚨 Danger (Dark Red)</option>
+                        <option value="info">ℹ️ Info (Light Blue)</option>
+                        <option value="success">✅ Success (Green)</option>
+                        <option value="bug">🐛 Bug (Red)</option>
+                        <option value="question">❓ Question (Purple)</option>
+                        <option value="abstract">📄 Abstract (Gray)</option>
+                        <option value="example">📋 Example (Yellow)</option>
+                        <option value="quote">💬 Quote (Indigo)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="saveQuoteBtn" class="save-btn">💾 Save Changes</button>
+                <button id="cancelEditBtn" class="cancel-btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

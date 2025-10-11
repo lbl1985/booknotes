@@ -359,7 +359,10 @@ function editQuote(index) {
     editCalloutType.value = quote.calloutType;
     
     editModal.style.display = 'flex';
-    editQuoteText.focus();
+    editNotesText.focus();
+    
+    // Position cursor at the end of existing notes for easy continuation
+    editNotesText.setSelectionRange(editNotesText.value.length, editNotesText.value.length);
 }
 
 function deleteQuote(index) {

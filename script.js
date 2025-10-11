@@ -557,6 +557,7 @@ function generateProgressMetadata() {
         totalQuotes: quotes.length,
         quotesWithNotes: quotes.filter(q => q.notes && q.notes.trim()).length,
         mergedQuotes: quotes.filter(q => q.merged).length,
+        selectedQuoteIndex: selectedQuoteIndex, // Save current keyboard selection
         quotes: quotes.map((quote, index) => ({
             index: index,
             id: quote.id,
@@ -842,10 +843,14 @@ function loadFile(file) {
 
 function showProgressInfo(progressData) {
     const timestamp = new Date(progressData.timestamp).toLocaleString();
+    const workingPosition = typeof progressData.selectedQuoteIndex === 'number' && 
+                           progressData.selectedQuoteIndex >= 0 ? 
+                           `\n• Last working on: Quote #${progressData.selectedQuoteIndex + 1}` : '';
+    
     const message = `📊 Previous Progress Found (${timestamp}):\n` +
                    `• ${progressData.totalQuotes} quotes total\n` +
                    `• ${progressData.quotesWithNotes} quotes with notes\n` +
-                   `• ${progressData.mergedQuotes} merged quotes\n\n` +
+                   `• ${progressData.mergedQuotes} merged quotes${workingPosition}\n\n` +
                    `Click "Parse Quotes" to continue where you left off.`;
     
     if (confirm(message + '\n\nWould you like to automatically parse and restore your progress?')) {
@@ -863,7 +868,24 @@ function restoreProgressState(progressData) {
                 quotes[index].calloutType = savedQuote.calloutType;
             }
         });
+        
+        // Restore keyboard navigation selection
+        if (typeof progressData.selectedQuoteIndex === 'number' && 
+            progressData.selectedQuoteIndex >= 0 && 
+            progressData.selectedQuoteIndex < quotes.length) {
+            selectedQuoteIndex = progressData.selectedQuoteIndex;
+        } else {
+            // Default to first quote if no valid selection saved
+            selectedQuoteIndex = quotes.length > 0 ? 0 : -1;
+        }
+        
         displayQuotes();
+        
+        // Highlight and scroll to the restored selection
+        if (selectedQuoteIndex >= 0) {
+            highlightSelectedQuote();
+            scrollToSelectedQuote();
+        }
     }, 100);
 }
 

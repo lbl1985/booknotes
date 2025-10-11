@@ -381,24 +381,24 @@ function mergeSelectedQuotes() {
     
     if (selectedIndices.length < 2) return;
     
-    // Create merged quote
+    // Create merged quote with structured data to maintain quote-reference relationships
     const selectedQuotes = selectedIndices.map(i => quotes[i]);
+    
+    // Store individual quotes with their references for proper output formatting
+    const quoteParts = selectedQuotes.map(q => ({
+        highlight: q.highlight,
+        locationRefs: q.locationRefs || []
+    }));
+    
     const mergedHighlight = selectedQuotes.map(q => q.highlight).join('\n\n');
     const mergedNotes = selectedQuotes.filter(q => q.notes).map(q => q.notes).join('\n\n');
-    
-    // Combine all location references
-    const mergedLocationRefs = [];
-    selectedQuotes.forEach(q => {
-        if (q.locationRefs && q.locationRefs.length > 0) {
-            mergedLocationRefs.push(...q.locationRefs);
-        }
-    });
     
     const mergedQuote = {
         id: Date.now(),
         highlight: mergedHighlight,
         notes: mergedNotes,
-        locationRefs: mergedLocationRefs,
+        locationRefs: [], // Keep empty for merged quotes
+        quoteParts: quoteParts, // Store individual parts with their references
         calloutType: selectedQuotes[0].calloutType,
         selected: false,
         merged: true
@@ -432,20 +432,27 @@ function generateOutput() {
         }
         
         // Handle merged quotes vs single quotes
-        if (quote.merged && quote.highlight.includes('\n\n')) {
-            // For merged quotes, split by double newlines and handle each part
-            const quoteParts = quote.highlight.split('\n\n');
-            quoteParts.forEach((part, partIndex) => {
-                result += '> ' + part;
+        if (quote.merged && quote.quoteParts) {
+            // For merged quotes, use the stored quoteParts to maintain quote-reference relationships
+            quote.quoteParts.forEach((part, partIndex) => {
+                const quoteLines = part.highlight.split('\n');
+                quoteLines.forEach((line, lineIndex) => {
+                    result += '> ' + line;
+                    
+                    // Add location references to the last line of each quote part
+                    if (lineIndex === quoteLines.length - 1 && part.locationRefs && part.locationRefs.length > 0) {
+                        result += ' ' + part.locationRefs.join(' ');
+                    }
+                    
+                    result += '\n';
+                });
                 
-                // Add location references for this part if available
-                // For merged quotes, distribute location refs evenly or add to first part
-                if (quote.locationRefs && quote.locationRefs.length > 0 && partIndex === 0) {
-                    result += ' ' + quote.locationRefs.join(' ');
+                // Add spacing between merged quote parts (except after the last one)
+                if (partIndex < quote.quoteParts.length - 1) {
+                    result += '\n';
                 }
-                
-                result += '\n\n';
             });
+            result += '\n';
         } else {
             // Single quote - add location references at the end of the quote line
             const quoteLines = quote.highlight.split('\n');

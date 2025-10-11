@@ -426,17 +426,38 @@ function generateOutput() {
     let result = '';
     
     quotes.forEach((quote, index) => {
-        // Add quote in blockquote format
-        const quoteLines = quote.highlight.split('\n');
-        quoteLines.forEach(line => {
-            result += '> ' + line + '\n';
-        });
-        result += '\n';
+        // Add separator before each quote (except the first one)
+        if (index > 0) {
+            result += '\n---\n\n';
+        }
         
-        // Add location references if they exist
-        if (quote.locationRefs && quote.locationRefs.length > 0) {
-            quote.locationRefs.forEach(ref => {
-                result += '> ' + ref + '\n';
+        // Handle merged quotes vs single quotes
+        if (quote.merged && quote.highlight.includes('\n\n')) {
+            // For merged quotes, split by double newlines and handle each part
+            const quoteParts = quote.highlight.split('\n\n');
+            quoteParts.forEach((part, partIndex) => {
+                result += '> ' + part;
+                
+                // Add location references for this part if available
+                // For merged quotes, distribute location refs evenly or add to first part
+                if (quote.locationRefs && quote.locationRefs.length > 0 && partIndex === 0) {
+                    result += ' ' + quote.locationRefs.join(' ');
+                }
+                
+                result += '\n\n';
+            });
+        } else {
+            // Single quote - add location references at the end of the quote line
+            const quoteLines = quote.highlight.split('\n');
+            quoteLines.forEach((line, lineIndex) => {
+                result += '> ' + line;
+                
+                // Add location references to the last line of the quote
+                if (lineIndex === quoteLines.length - 1 && quote.locationRefs && quote.locationRefs.length > 0) {
+                    result += ' ' + quote.locationRefs.join(' ');
+                }
+                
+                result += '\n';
             });
             result += '\n';
         }

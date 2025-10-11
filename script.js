@@ -700,7 +700,14 @@ function reconstructMarkdownWithNotes(originalContent) {
 
 // Keyboard navigation functions
 function handleKeyboardNavigation(event) {
-    // Only handle keyboard navigation when quotes are visible and not in modal
+    // Handle ESC key when modal is open
+    if (editModal.style.display === 'flex' && event.key === 'Escape') {
+        event.preventDefault();
+        closeEditModal();
+        return;
+    }
+    
+    // Only handle other keyboard navigation when quotes are visible and not in modal
     if (quotesSection.style.display !== 'block' || editModal.style.display === 'flex') {
         return;
     }

@@ -221,9 +221,10 @@ function isKindleLocationRef(line) {
 
 // Remove embedded Kindle location references from text
 function removeEmbeddedLocationRefs(text) {
-    // Pattern to match location references embedded within text
+    // Pattern to match location references embedded within text (both Kindle and Amazon reader links)
     // Matches: — location: [302](kindle://book?action=open&asin=B00Z3FRYB0&location=302) ^ref-391
-    const locationPattern = /[\u2013\u2014\u2015\-]\s*location:\s*\[.*?\]\(kindle:\/\/.*?\)\s*\^ref-\d+/gi;
+    // Matches: — location: [302](https://read.amazon.com/?asin=B00Z3FRYB0&location=302) ^ref-391
+    const locationPattern = /[\u2013\u2014\u2015\-]\s*location:\s*\[.*?\]\((kindle:\/\/|https:\/\/read\.amazon\.com\/\?).*?\)\s*\^ref-\d+/gi;
     
     // Also match standalone ^ref-##### patterns
     const refPattern = /\s*\^ref-\d+/gi;
@@ -241,6 +242,16 @@ function removeEmbeddedLocationRefs(text) {
 function convertKindleLinksToAmazon(text) {
     // Replace kindle://book?action=open& with https://read.amazon.com/?
     return text.replace(/kindle:\/\/book\?action=open&/g, 'https://read.amazon.com/?');
+}
+
+// Convert markdown links to HTML links for display
+function convertMarkdownLinksToHTML(text) {
+    // Pattern to match markdown links: [text](url)
+    const markdownLinkPattern = /\[([^\]]+)\]\(([^)]+)\)/g;
+    
+    return text.replace(markdownLinkPattern, (match, linkText, url) => {
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="location-link">${linkText}</a>`;
+    });
 }
 
 // Convert Kindle links in the input text area
@@ -290,8 +301,8 @@ function convertKindleLinksInInput() {
 function extractLocationRefs(text) {
     const locationRefs = [];
     
-    // Pattern to match location references
-    const locationPattern = /[\u2013\u2014\u2015\-]\s*location:\s*\[.*?\]\(kindle:\/\/.*?\)\s*\^ref-\d+/gi;
+    // Pattern to match location references (both Kindle and Amazon reader links)
+    const locationPattern = /[\u2013\u2014\u2015\-]\s*location:\s*\[.*?\]\((kindle:\/\/|https:\/\/read\.amazon\.com\/\?).*?\)\s*\^ref-\d+/gi;
     const refPattern = /\^ref-\d+/gi;
     
     let match;
@@ -366,7 +377,7 @@ function createQuoteCard(quote, index) {
     
     // Add location info indicator if present
     const locationIndicator = quote.locationRefs && quote.locationRefs.length > 0 ? 
-        `<span class="location-indicator" title="Contains Kindle location reference">📍</span>` : '';
+        `<span class="location-indicator" title="Has location references">�</span>` : '';
     
     // Build the card content conditionally
     const hasNotes = quote.notes && quote.notes.trim();
@@ -389,6 +400,20 @@ function createQuoteCard(quote, index) {
         cardContent += `
         <div class="quote-notes">
             ${quote.notes}
+        </div>`;
+    }
+    
+    // Add location references as clickable links if they exist
+    if (quote.locationRefs && quote.locationRefs.length > 0) {
+        const locationLinks = quote.locationRefs.map(ref => {
+            // Convert markdown links to HTML for display
+            return convertMarkdownLinksToHTML(ref);
+        }).join(' ');
+        
+        cardContent += `
+        <div class="quote-location-refs">
+            <span class="location-label">📍 Location:</span>
+            <span class="location-links">${locationLinks}</span>
         </div>`;
     }
     
@@ -1168,7 +1193,7 @@ I need to apply this to my phone usage. Instead of relying on willpower, I shoul
 
 ---
 
-The most effective way to change your habits is to focus not on what you want to achieve, but on who you wish to become. — location: [892](kindle://book?action=open&asin=B00Z3FRYB0&location=892) ^ref-25024
+The most effective way to change your habits is to focus not on what you want to achieve, but on who you wish to become. — location: [892](https://read.amazon.com/?asin=B00Z3FRYB0&location=892) ^ref-25024
 
 This is a paradigm shift for me. Instead of saying "I want to lose weight," I should think "I am someone who takes care of their health."
 

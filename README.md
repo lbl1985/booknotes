@@ -125,3 +125,10 @@ Potential features for future versions:
 - Custom callout creation
 - Theme customization
 - Integration with Obsidian API
+
+## how to use it
+```
+python3 -m http.server 8000
+```
+
+Then in the browser, go to http://localhost:8000 to leverage Vimium to help on the navigation.

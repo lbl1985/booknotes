@@ -570,7 +570,7 @@ input[type="checkbox"] {
 }
 
 /* Buttons */
-.convert-btn, .copy-btn, .clear-btn, .download-btn, .merge-btn, .back-btn, .save-btn, .cancel-btn, .edit-btn, .delete-btn {
+.convert-btn, .copy-btn, .clear-btn, .download-btn, .merge-btn, .back-btn, .save-btn, .cancel-btn, .edit-btn, .delete-btn, .convert-links-btn {
     padding: 12px 24px;
     border: none;
     border-radius: 8px;
@@ -591,6 +591,16 @@ input[type="checkbox"] {
 .convert-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.convert-links-btn {
+    background: #8b5cf6;
+    color: white;
+}
+
+.convert-links-btn:hover {
+    background: #7c3aed;
+    transform: translateY(-1px);
 }
 
 .output-controls {

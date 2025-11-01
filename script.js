@@ -3,6 +3,7 @@ const inputText = document.getElementById('inputText');
 const outputText = document.getElementById('outputText');
 const noteCallout = document.getElementById('noteCallout');
 const parseBtn = document.getElementById('parseBtn');
+const convertLinksBtn = document.getElementById('convertLinksBtn');
 const generateBtn = document.getElementById('generateBtn');
 const mergeSelectedBtn = document.getElementById('mergeSelectedBtn');
 const copyBtn = document.getElementById('copyBtn');
@@ -62,6 +63,7 @@ function init() {
     
     // Event listeners
     parseBtn.addEventListener('click', parseQuotes);
+    convertLinksBtn.addEventListener('click', convertKindleLinksInInput);
     generateBtn.addEventListener('click', generateOutput);
     mergeSelectedBtn.addEventListener('click', mergeSelectedQuotes);
     saveProgressBtn.addEventListener('click', saveProgress);
@@ -151,7 +153,9 @@ function parseKindleHighlights(text) {
             const isLocationRef = isKindleLocationRef(trimmedLine);
             
             if (isLocationRef) {
-                locationRefs.push(trimmedLine);
+                // Convert Kindle links to Amazon reader links
+                const convertedLine = convertKindleLinksToAmazon(trimmedLine);
+                locationRefs.push(convertedLine);
                 return;  // Skip adding to highlight or notes
             }
             
@@ -161,7 +165,9 @@ function parseKindleHighlights(text) {
             // Extract any embedded location references
             const embeddedRefs = extractLocationRefs(processedLine);
             if (embeddedRefs.length > 0) {
-                locationRefs.push(...embeddedRefs);
+                // Convert Kindle links to Amazon reader links in location references
+                const convertedRefs = embeddedRefs.map(ref => convertKindleLinksToAmazon(ref));
+                locationRefs.push(...convertedRefs);
                 // Remove the location references from the text
                 processedLine = removeEmbeddedLocationRefs(processedLine);
             }
@@ -229,6 +235,55 @@ function removeEmbeddedLocationRefs(text) {
     cleaned = cleaned.replace(/\s+/g, ' ').trim();
     
     return cleaned;
+}
+
+// Convert Kindle links to Amazon online reader links
+function convertKindleLinksToAmazon(text) {
+    // Replace kindle://book?action=open& with https://read.amazon.com/?
+    return text.replace(/kindle:\/\/book\?action=open&/g, 'https://read.amazon.com/?');
+}
+
+// Convert Kindle links in the input text area
+function convertKindleLinksInInput() {
+    const inputContent = inputText.value;
+    if (!inputContent.trim()) {
+        alert('No content to convert. Please load a file or paste some content first.');
+        return;
+    }
+    
+    // Check if there are any Kindle links to convert
+    const kindleLinkCount = (inputContent.match(/kindle:\/\/book\?action=open&/g) || []).length;
+    
+    if (kindleLinkCount === 0) {
+        alert('No Kindle links found to convert.');
+        return;
+    }
+    
+    // Convert the links
+    const convertedContent = convertKindleLinksToAmazon(inputContent);
+    inputText.value = convertedContent;
+    
+    // Update original file content if we have a loaded file
+    if (originalFileContent) {
+        originalFileContent = convertKindleLinksToAmazon(originalFileContent);
+    }
+    
+    // Visual feedback
+    const originalText = convertLinksBtn.textContent;
+    convertLinksBtn.textContent = `✅ Converted ${kindleLinkCount} links!`;
+    convertLinksBtn.style.background = '#22c55e';
+    
+    setTimeout(() => {
+        convertLinksBtn.textContent = originalText;
+        convertLinksBtn.style.background = '';
+    }, 3000);
+    
+    // If quotes are already parsed, re-parse them to update the converted links
+    if (quotes.length > 0) {
+        if (confirm(`${kindleLinkCount} Kindle links have been converted to Amazon reader links.\n\nWould you like to re-parse the quotes to apply the changes?`)) {
+            parseQuotes();
+        }
+    }
 }
 
 // Extract location references from text
@@ -683,7 +738,9 @@ function reconstructMarkdownWithNotes(originalContent) {
             quote.quoteParts.forEach((part, partIndex) => {
                 result += part.highlight;
                 if (part.locationRefs && part.locationRefs.length > 0) {
-                    result += ' ' + part.locationRefs.join(' ');
+                    // Ensure links are converted when reconstructing
+                    const convertedRefs = part.locationRefs.map(ref => convertKindleLinksToAmazon(ref));
+                    result += ' ' + convertedRefs.join(' ');
                 }
                 if (partIndex < quote.quoteParts.length - 1) {
                     result += '\n\n';
@@ -693,7 +750,9 @@ function reconstructMarkdownWithNotes(originalContent) {
             // Single quote
             result += quote.highlight;
             if (quote.locationRefs && quote.locationRefs.length > 0) {
-                result += ' ' + quote.locationRefs.join(' ');
+                // Ensure links are converted when reconstructing
+                const convertedRefs = quote.locationRefs.map(ref => convertKindleLinksToAmazon(ref));
+                result += ' ' + convertedRefs.join(' ');
             }
         }
         
@@ -922,7 +981,11 @@ function loadFile(file) {
         hasProgressMetadata = !!progressData;
         
         // Remove progress metadata from display content
-        const cleanContent = removeProgressMetadata(content);
+        let cleanContent = removeProgressMetadata(content);
+        
+        // Convert Kindle links to Amazon reader links
+        cleanContent = convertKindleLinksToAmazon(cleanContent);
+        
         inputText.value = cleanContent;
         
         // Update UI
@@ -1105,7 +1168,7 @@ I need to apply this to my phone usage. Instead of relying on willpower, I shoul
 
 ---
 
-The most effective way to change your habits is to focus not on what you want to achieve, but on who you wish to become.
+The most effective way to change your habits is to focus not on what you want to achieve, but on who you wish to become. — location: [892](kindle://book?action=open&asin=B00Z3FRYB0&location=892) ^ref-25024
 
 This is a paradigm shift for me. Instead of saying "I want to lose weight," I should think "I am someone who takes care of their health."
 

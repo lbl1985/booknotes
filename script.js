@@ -38,6 +38,7 @@ let quotes = [];
 let currentEditingIndex = -1;
 let hasProgressMetadata = false;
 let selectedQuoteIndex = -1; // For keyboard navigation
+let locationToPageFormula = null; // Store the LocationToPage formula from metadata
 
 // Callout type mappings
 const calloutTypes = {
@@ -94,12 +95,71 @@ function init() {
     fileDropZone.addEventListener('drop', handleFileDrop);
 }
 
+// Parse LocationToPage formula from metadata
+function parseLocationToPageFormula(text) {
+    // Look for pattern: LocationToPage: (x - offset) / divisor
+    const match = text.match(/LocationToPage:\s*\(x\s*-\s*(\d+)\)\s*\/\s*(\d+)/i);
+    if (match) {
+        return {
+            offset: parseInt(match[1], 10),
+            divisor: parseInt(match[2], 10)
+        };
+    }
+    return null;
+}
+
+// Calculate page number from location using the formula
+function calculatePageNumber(location, formula) {
+    if (!formula || !location) return null;
+    const page = Math.floor((location - formula.offset) / formula.divisor);
+    return page > 0 ? page : null;
+}
+
+// Extract location number from location reference string
+function extractLocationNumber(locationRef) {
+    // Pattern to match location: [508](url) format
+    const match = locationRef.match(/location:\s*\[(\d+)\]/i);
+    return match ? parseInt(match[1], 10) : null;
+}
+
+// Add page number to location reference
+function addPageNumberToLocationRef(locationRef, formula) {
+    if (!formula) return locationRef;
+    
+    const locationNumber = extractLocationNumber(locationRef);
+    if (!locationNumber) return locationRef;
+    
+    const pageNumber = calculatePageNumber(locationNumber, formula);
+    if (!pageNumber) return locationRef;
+    
+    // Check if page number already exists at the front
+    if (locationRef.match(/^\*\*Page\s+\d+\*\*;\s*/i)) {
+        // Replace existing page number at the front
+        return locationRef.replace(/^\*\*Page\s+\d+\*\*;\s*/i, `**Page ${pageNumber}**; `);
+    }
+    // Check if page number exists at the end (old format)
+    else if (locationRef.match(/\s+Page:\s*\d+$/i)) {
+        // Remove old format and add new format at the front
+        const cleanRef = locationRef.replace(/\s+Page:\s*\d+$/i, '');
+        return `**Page ${pageNumber}**; ${cleanRef}`;
+    } else {
+        // Add page number at the front with bold formatting
+        return `**Page ${pageNumber}**; ${locationRef}`;
+    }
+}
+
 // Parse quotes from input text
 function parseQuotes() {
     const input = inputText.value.trim();
     if (!input) {
         alert('Please enter some content to parse.');
         return;
+    }
+    
+    // Parse LocationToPage formula from metadata
+    locationToPageFormula = parseLocationToPageFormula(input);
+    if (locationToPageFormula) {
+        console.log('Found LocationToPage formula:', locationToPageFormula);
     }
     
     try {
@@ -154,7 +214,9 @@ function parseKindleHighlights(text) {
             
             if (isLocationRef) {
                 // Convert Kindle links to Amazon reader links
-                const convertedLine = convertKindleLinksToAmazon(trimmedLine);
+                let convertedLine = convertKindleLinksToAmazon(trimmedLine);
+                // Add page number if formula is available
+                convertedLine = addPageNumberToLocationRef(convertedLine, locationToPageFormula);
                 locationRefs.push(convertedLine);
                 return;  // Skip adding to highlight or notes
             }
@@ -166,7 +228,11 @@ function parseKindleHighlights(text) {
             const embeddedRefs = extractLocationRefs(processedLine);
             if (embeddedRefs.length > 0) {
                 // Convert Kindle links to Amazon reader links in location references
-                const convertedRefs = embeddedRefs.map(ref => convertKindleLinksToAmazon(ref));
+                const convertedRefs = embeddedRefs.map(ref => {
+                    let converted = convertKindleLinksToAmazon(ref);
+                    // Add page number if formula is available
+                    return addPageNumberToLocationRef(converted, locationToPageFormula);
+                });
                 locationRefs.push(...convertedRefs);
                 // Remove the location references from the text
                 processedLine = removeEmbeddedLocationRefs(processedLine);
@@ -1000,6 +1066,12 @@ function loadFile(file) {
         const content = e.target.result;
         originalFileContent = content;
         currentFileName = file.name;
+        
+        // Parse LocationToPage formula from the file
+        locationToPageFormula = parseLocationToPageFormula(content);
+        if (locationToPageFormula) {
+            console.log('Found LocationToPage formula:', locationToPageFormula);
+        }
         
         // Check for existing progress metadata
         const progressData = parseProgressMetadata(content);
